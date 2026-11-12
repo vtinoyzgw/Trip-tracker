@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trip Tracker</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ff6b2c"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#14171c;--mu:#6b7380;--ac:#ff6b2c;--bd:#e3e6ea;--gr:#16a34a;--rd:#dc2626;--cv:#0f172a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1013;--card:#181b20;--tx:#eef0f3;--mu:#98a0ac;--bd:#2a2e35}}
+:root[data-theme="dark"]{--bg:#0e1013;--card:#181b20;--tx:#eef0f3;--mu:#98a0ac;--bd:#2a2e35}
+html{color-scheme:light dark}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:72px}
+main{max-width:480px;margin:0 auto;padding:12px}
+.tab{display:none}.tab.on{display:block}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;padding:12px 4px;background:none;border:0;color:var(--mu);font:600 13px inherit;cursor:pointer}
+nav button.on{color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:12px}
+h2{margin:0 0 8px;font-size:16px}
+canvas{width:100%;aspect-ratio:9/14;border-radius:12px;background:var(--cv);display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button.b,label.b{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:9px 12px;font:600 14px inherit;cursor:pointer;display:inline-block}
+button.g{background:var(--bd);color:var(--tx)}
+input,select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+input[type=range]{padding:0}
+.f{margin-bottom:8px}.f span{display:block;font-size:12px;color:var(--mu);margin-bottom:3px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;text-align:center}
+.st div{background:var(--bg);border-radius:10px;padding:8px 2px}.st b{display:block;font-size:16px}.st small{color:var(--mu);font-size:11px}
+.it{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
+.it:last-child{border:0}.in{color:var(--gr);font-weight:700}.out{color:var(--rd);font-weight:700}
+.mu{color:var(--mu);font-size:12px}
+.leaflet-container{border-radius:12px;font:inherit}
+.me{width:22px;height:22px;border-radius:50%;background:#1a73e8;border:4px solid #fff;box-shadow:0 0 0 4px rgba(26,115,232,.35),0 2px 6px rgba(0,0,0,.4)}
+.veh{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid #1a73e8;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);font-size:22px}.veh span{display:block;line-height:1}
+.ov{position:absolute;z-index:500;left:10px;top:10px;background:rgba(255,255,255,.95);color:#14171c;border-radius:10px;padding:6px 10px;font-weight:700;pointer-events:none}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script></head><body>
+<main>
+<section id="t1" class="tab on">
+ <div class="card"><h2>Rute Perjalanan</h2>
+  <div style="position:relative"><div id="map" style="height:440px;background:#e5e3df"></div><div class="ov" id="ov">0 km</div></div>
+  <input id="sl" type="range" min="0" max="1000" value="0" style="margin-top:8px">
+  <div class="g2" style="margin-top:8px"><div class="f"><span>Kendaraan</span><select id="veh"><option value="motor">🏍️ Motor</option><option value="mobil">🚗 Mobil</option><option value="pesawat">✈️ Pesawat</option><option value="kapal">🚢 Kapal</option></select></div>
+  <div class="f"><span>Kamera</span><select id="cam"><option value="out">Zoom out (seluruh rute)</option><option value="ikut">Ikuti kendaraan</option></select></div></div>
+  <div class="row">
+   <button class="b" id="play">▶ Putar</button>
+   <select id="spd" style="width:auto"><option value="20">Pelan</option><option value="10" selected>Normal</option><option value="5">Cepat</option></select>
+   <button class="b g" id="rst">⟲</button>
+  </div>
+  <div class="st"><div><b id="sD">0 km</b><small>Jarak</small></div><div><b id="sP">0 pts</b><small>Titik</small></div><div><b id="sC">0 km</b><small>Sejauh ini</small></div></div>
+  <div class="st"><div><b id="sV">-</b><small>Kecepatan</small></div><div><b id="sA">-</b><small>Rata-rata</small></div><div><b id="sM">-</b><small>Maksimum</small></div></div>
+  <div class="st"><div><b id="sT">-</b><small>Durasi</small></div><div><b id="sB">-</b><small>Rata² bergerak</small></div><div><b id="sS">-</b><small>Berhenti</small></div></div>
+ </div>
+ <div class="card"><h2>Buat Rute</h2>
+  <div class="g2"><div class="f"><span>Dari</span><input id="from" value="Jakarta"></div><div class="f"><span>Ke</span><input id="to" value="Puncak Pass, Bogor"></div></div>
+  <label class="mu"><input type="checkbox" id="rt" checked style="width:auto"> Pulang-pergi</label>
+  <div class="row"><button class="b" id="go">Cari rute &amp; animasikan</button></div>
+  <div class="row"><button class="b" id="rec">● Rekam GPS</button><label class="b g">Impor GPX<input type="file" id="gpx" accept=".gpx,.xml" hidden></label><button class="b g" id="clr">Hapus</button></div>
+  <div class="row"><button class="b" id="vid">🎬 Buat Video</button><select id="vd" style="width:auto"><option value="10">10 detik</option><option value="20" selected>20 detik</option><option value="30">30 detik</option></select></div>
+  <p class="mu" id="msg">Untuk animasi perjalananmu sendiri: tekan Rekam GPS saat berkendara, lalu Stop dan Putar. Atau ketik asal &amp; tujuan. Untuk konten: tekan Putar lalu screen record layar HP.</p>
+ </div>
+ </section>
+
+<section id="t2" class="tab">
+ <div class="card"><h2>Pengaturan Motor</h2>
+  <div class="g2">
+   <div class="f"><span>Jenis BBM</span><select id="fuel"></select></div>
+   <div class="f"><span>Harga per liter (Rp)</span><input id="price" type="number" inputmode="numeric"></div>
+  </div>
+  <div class="f"><span>Kapasitas tangki (liter)</span><input id="tank" type="number" step="0.1" inputmode="decimal"></div>
+  <p class="mu">Harga bisa kamu ubah sesuai harga di SPBU.</p>
+ </div>
+ <div class="card"><h2>⛽ Isi Bensin Pertama</h2>
+  <p class="mu" style="margin-top:0">Isi full sebelum berangkat.</p>
+  <div class="f"><span>Nominal (Rp)</span><input id="f1" type="number" inputmode="numeric" placeholder="100000"></div>
+  <div class="f"><span>Odometer motor (km), opsional</span><input id="o1" type="number" inputmode="numeric" placeholder="mis. 12500"></div>
+  <p class="mu" id="l1"></p>
+  <button class="b g" id="toExp1">+ Catat ke Pengeluaran</button>
+ </div>
+ <div class="card"><h2>⛽ Isi Bensin Kedua</h2>
+  <p class="mu" style="margin-top:0">Isi full lagi setelah pulang. Nominal ini = bensin yang terpakai selama perjalanan.</p>
+  <div class="f"><span>Nominal (Rp)</span><input id="f2" type="number" inputmode="numeric" placeholder="60000"></div>
+  <div class="f"><span>Odometer motor (km), opsional</span><input id="o2" type="number" inputmode="numeric" placeholder="mis. 12660"></div>
+  <p class="mu" id="l2"></p>
+  <button class="b g" id="toExp">+ Catat ke Pengeluaran</button>
+ </div>
+ <div class="card"><h2>Hasil Perjalanan</h2>
+  <div class="st" id="res"></div>
+  <p class="mu" id="warn"></p>
+ </div>
+ <div class="card"><h2>Perkiraan Jarak Tempuh</h2>
+  <p class="mu" style="margin-top:0">Berapa km lagi bensinmu habis. Kosongkan efisiensi untuk memakai hasil perjalanan di atas.</p>
+  <div class="g2">
+   <div class="f"><span>Efisiensi (km per liter)</span><input id="eff" type="number" step="0.1" inputmode="decimal" placeholder="otomatis"></div>
+   <div class="f"><span>Mau isi bensin (Rp)</span><input id="rpi" type="number" inputmode="numeric" placeholder="50000"></div>
+  </div>
+  <div class="f"><span>Sisa bensin di tangki: <b id="pcl"></b></span><input id="pct" type="range" min="0" max="100" step="5"></div>
+  <div class="st" id="rg"></div>
+  <p class="mu" id="rgw"></p>
+ </div>
+</section>
+
+<section id="t3" class="tab">
+ <div class="card"><h2>Ringkasan</h2>
+  <div class="row" style="margin:0 0 8px"><input type="month" id="mf" style="flex:1"><button class="b g" id="mall">Semua</button></div>
+  <div class="f"><span>Kategori</span><select id="cf"><option value="">Semua kategori</option><option>Kerja</option><option>Perjalanan</option><option>Pribadi</option><option>Lainnya</option></select></div>
+  <div class="st"><div><b class="in" id="tin">0</b><small>Pemasukan</small></div><div><b class="out" id="tout">0</b><small>Pengeluaran</small></div><div><b id="tbal">0</b><small>Saldo</small></div></div>
+  <div class="st"><div><b id="pOut">-</b><small>Pengeluaran dari pemasukan</small></div><div><b id="pSis">-</b><small>Sisa pemasukan</small></div><div><b id="nTx">0 / 0</b><small>Catatan masuk / keluar</small></div></div>
+  <p class="mu" id="avg"></p>
+ </div>
+ <div class="card"><h2>Tambah Catatan</h2>
+  <div class="g2">
+   <div class="f"><span>Jenis</span><select id="ty"><option value="out">Pengeluaran</option><option value="in">Pemasukan</option></select></div>
+   <div class="f"><span>Jumlah (Rp)</span><input id="am" type="number" inputmode="numeric"></div>
+  </div>
+  <div class="g2"><div class="f"><span>Kategori</span><select id="ct"><option>Kerja</option><option>Perjalanan</option><option>Pribadi</option><option>Lainnya</option></select></div><div class="f"><span>Tanggal</span><input id="dt" type="date"></div></div>
+  <div class="f"><span>Keterangan (mis. bensin, makan, parkir, gaji)</span><input id="nt"></div>
+  <button class="b" id="add">Simpan</button>
+ </div>
+ <div class="card"><h2>Per Kategori</h2><div id="bk"></div></div>
+ <div class="card"><h2>Riwayat</h2><div id="list"></div></div>
+</section>
+</main>
+<nav><button class="on" data-t="t1">🗺 Perjalanan</button><button data-t="t2">⛽ Bensin</button><button data-t="t3">💰 Keuangan</button></nav>
+
+<script>
+const $=i=>document.getElementById(i);
+const FUELS={"Pertalite":10000,"Pertamax":12200,"Pertamax Turbo":13100,"Dexlite":13000,"Lainnya":10000};
+let S={pts:[],fuel:"Pertalite",price:10000,tank:4,f1:"",f2:"",tx:[]};
+try{const s=localStorage.getItem("tt1");if(s)S=Object.assign(S,JSON.parse(s))}catch(e){}
+S.veh=S.veh||"motor";
+const td=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+S.tx.forEach(x=>{const m=/^(\d+)\/(\d+)\/(\d{4})$/.exec(x.d||"");if(m)x.d=m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0")});if(S.pct==null)S.pct=100;S.eff=S.eff||"";S.o1=S.o1||"";S.o2=S.o2||"";S.rpi=S.rpi||"";
+const save=()=>{try{localStorage.setItem("tt1",JSON.stringify(S))}catch(e){}};
+const rp=n=>"Rp"+Math.round(n).toLocaleString("id-ID");
+const msg=t=>$("msg").textContent=t;
+
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x.id===b.dataset.t));
+ if(b.dataset.t==="t2")calc();if(b.dataset.t==="t1")setTimeout(()=>map.invalidateSize(),50);
+});
+
+/* ---------- MAP ---------- */
+const map=L.map("map",{zoomControl:true}).setView([-6.5,106.85],9);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+let cum=[],total=0,prog=0,playing=false,last=0,watch=null,poly,done,mk,ends=[];
+function hav(a,b){const R=6371,r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r;
+ const x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+function prep(){cum=[0];for(let i=1;i<S.pts.length;i++)cum.push(cum[i-1]+hav(S.pts[i-1],S.pts[i]));
+ total=cum.length?cum[cum.length-1]:0;$("sD").textContent=total.toFixed(1)+" km";$("sP").textContent=S.pts.length+" pts";spStats()}
+let spd=[],hasT=false;
+function fmtT(ms){const m=Math.round(ms/60000),h=Math.floor(m/60);return h?h+"j "+(m%60)+"m":m+" m"}
+function spStats(){const n=S.pts.length;S.ts=S.ts||[];hasT=n>1&&S.ts.length===n&&S.ts.every(x=>x>0);spd=[];
+ if(!hasT){["sV","sA","sM","sT","sB","sS"].forEach(i=>$(i).textContent="-");return}
+ for(let i=0;i<n;i++){const j=Math.max(0,i-5),dt=(S.ts[i]-S.ts[j])/3600000;spd.push(dt>0?Math.min(250,(cum[i]-cum[j])/dt):0)}
+ let mv=0;for(let i=1;i<n;i++){const dt=(S.ts[i]-S.ts[i-1])/3600000,d=cum[i]-cum[i-1];if(dt>0&&d/dt>3)mv+=dt}
+ const tot=(S.ts[n-1]-S.ts[0])/3600000;
+ $("sA").textContent=tot>0?(total/tot).toFixed(1)+" km/j":"-";
+ $("sM").textContent=Math.round(spd.reduce((a,b)=>Math.max(a,b),0))+" km/j";
+ $("sT").textContent=fmtT(tot*3600000);$("sB").textContent=mv>0?(total/mv).toFixed(1)+" km/j":"-";$("sS").textContent=fmtT((tot-mv)*3600000)}
+function posAt(d){if(S.pts.length<2)return S.pts[0]?[...S.pts[0],1]:null;
+ let i=1;while(i<cum.length-1&&cum[i]<d)i++;
+ const sg=cum[i]-cum[i-1]||1,t=Math.min(1,Math.max(0,(d-cum[i-1])/sg)),A=S.pts[i-1],B=S.pts[i];
+ return[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,i]}
+const VE={motor:"🏍️",mobil:"🚗",pesawat:"✈️",kapal:"🚢"};
+function vIcon(){return L.divIcon({className:"",html:'<div class="veh"><span>'+VE[S.veh]+'</span></div>',iconSize:[40,40],iconAnchor:[20,20]})}
+function flip(c){const el=mk&&mk.getElement();if(!el||!c)return;const sp=el.querySelector("span"),A=S.pts[c[2]-1],B=S.pts[c[2]];if(!A||!B)return;
+ const east=B[1]>A[1];let f=false;if(S.veh==="motor"||S.veh==="mobil")f=east;else if(S.veh==="pesawat")f=!east;sp.style.transform=f?"scaleX(-1)":"none"}
+function layers(fit){[poly,done,mk,...ends].forEach(x=>x&&map.removeLayer(x));ends=[];
+ if(!S.pts.length)return;
+ poly=L.polyline(S.pts,{color:"#7a8aa0",weight:7,opacity:.55}).addTo(map);
+ done=L.polyline([],{color:"#1a73e8",weight:6}).addTo(map);
+ const P=S.pts;ends=[L.circleMarker(P[0],{radius:8,color:"#fff",fillColor:"#16a34a",fillOpacity:1,weight:3}).addTo(map),
+  L.circleMarker(P[P.length-1],{radius:8,color:"#fff",fillColor:"#dc2626",fillOpacity:1,weight:3}).addTo(map)];
+ mk=L.marker(P[0],{icon:vIcon(),zIndexOffset:1000}).addTo(map);
+ if(fit)map.fitBounds(poly.getBounds(),{padding:[30,30]});draw()}
+function draw(){const c=posAt(prog*total);if(!c||!mk)return;
+ done.setLatLngs(S.pts.slice(0,c[2]).concat([[c[0],c[1]]]));mk.setLatLng([c[0],c[1]]);
+ flip(c);if(playing&&$("cam").value==="ikut")map.setView([c[0],c[1]],map.getZoom(),{animate:false});
+ const t=(prog*total).toFixed(1)+" / "+total.toFixed(1)+" km";const v=hasT&&spd.length?spd[Math.min(spd.length-1,c[2])]:null;
+ $("ov").innerHTML=(v!=null?'<span style="font-size:24px">'+Math.round(v)+' km/j</span><br>':"")+t;$("sV").textContent=v!=null?Math.round(v)+" km/j":"-";$("sC").textContent=(prog*total).toFixed(1)+" km";$("sl").value=Math.round(prog*1000)}
+function tick(ts){if(!playing)return;const dt=Math.min(.1,(ts-last)/1000);last=ts;
+ prog=Math.min(1,prog+dt/+$("spd").value);draw();
+ if(prog>=1){playing=false;$("play").textContent="▶ Putar";return}requestAnimationFrame(tick)}
+$("play").onclick=()=>{if(S.pts.length<2){msg("Tambahkan rute dulu.");return}
+ if(playing){playing=false;$("play").textContent="▶ Putar";return}
+ if(prog>=1)prog=0;playing=true;last=performance.now();$("play").textContent="❚❚ Jeda";requestAnimationFrame(tick)};
+$("rst").onclick=()=>{playing=false;prog=0;$("play").textContent="▶ Putar";draw();if(poly)map.fitBounds(poly.getBounds(),{padding:[30,30]})};
+$("veh").value=S.veh;$("veh").onchange=()=>{S.veh=$("veh").value;if(mk){mk.setIcon(vIcon());draw()}save()};
+$("cam").onchange=()=>{if($("cam").value==="out"&&poly)map.fitBounds(poly.getBounds(),{padding:[30,30]})};
+$("sl").oninput=e=>{prog=e.target.value/1000;draw()};
+function setPts(p,m,t){S.pts=p;S.ts=t||[];prog=0;playing=false;$("play").textContent="▶ Putar";prep();layers(true);save();calc();if(m)msg(m)}
+$("clr").onclick=()=>setPts([],"Rute dihapus.");
+async function geo(q){const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q));
+ const j=await r.json();if(!j.length)throw new Error("Tempat tidak ditemukan: "+q);return[+j[0].lat,+j[0].lon]}
+$("go").onclick=async()=>{try{msg("Mencari rute...");
+ const a=await geo($("from").value),b=await geo($("to").value);
+ const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
+ const j=await r.json();if(!j.routes||!j.routes.length)throw new Error("Rute tidak ditemukan");
+ let p=j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+ if($("rt").checked)p=p.concat(p.slice().reverse());
+ setPts(p,"Rute siap: "+total.toFixed(1)+" km. Tekan Putar.")}catch(e){msg("Gagal: "+e.message+". Pastikan internet aktif.")}};
+$("gpx").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{const d=new DOMParser().parseFromString(r.result,"text/xml");
+  let n=[...d.querySelectorAll("trkpt")];if(!n.length)n=[...d.querySelectorAll("rtept")];
+  const p=[],t=[];n.forEach(x=>{const la=+x.getAttribute("lat"),lo=+x.getAttribute("lon");if(isNaN(la))return;p.push([la,lo]);const tm=x.querySelector("time");t.push(tm?Date.parse(tm.textContent):0)});
+  const ok=t.length>1&&t.every(v=>v>0);
+  p.length>1?setPts(p,"GPX dimuat: "+p.length+" titik."+(ok?"":" (tanpa data waktu, kecepatan tidak tersedia)"),ok?t:[]):msg("Tidak ada titik rute di file itu.")};r.readAsText(f)};
+let wid=null;
+const NAT=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+const BG=NAT?Capacitor.registerPlugin("BackgroundGeolocation"):null;
+function addPt(q,t){const l=S.pts[S.pts.length-1];if(l&&hav(l,q)<=0.01)return;S.pts.push(q);S.ts.push(t||Date.now());prep();if(S.pts.length===1)layers(false);poly.setLatLngs(S.pts);prog=1;draw();map.setView(q,16);save()}
+$("rec").onclick=async()=>{
+ if(watch!==null||wid!==null){if(wid!==null){await BG.removeWatcher({id:wid});wid=null}else{navigator.geolocation.clearWatch(watch);watch=null}
+  $("rec").textContent="● Rekam GPS";layers(true);calc();msg("Rekaman selesai. Jarak: "+total.toFixed(1)+" km"+(hasT?", rata-rata "+$("sA").textContent:"")+".");return}
+ S.pts=[];S.ts=[];prog=1;layers(false);$("rec").textContent="■ Stop rekam";
+ if(BG){msg("Merekam di latar belakang (ada notifikasi). Kamu boleh tutup layar.");
+  wid=await BG.addWatcher({backgroundMessage:"Sedang merekam perjalanan",backgroundTitle:"Trip Tracker",requestPermissions:true,stale:false,distanceFilter:10},(loc,er)=>{
+   if(er){msg(er.code==="NOT_AUTHORIZED"?"Izin lokasi ditolak. Buka pengaturan dan pilih Selalu izinkan.":"GPS gagal: "+er.message);if(er.code==="NOT_AUTHORIZED")BG.openSettings();return}
+   addPt([loc.latitude,loc.longitude],loc.time)})}
+ else if(!navigator.geolocation){msg("GPS tidak tersedia. Pakai impor GPX.");$("rec").textContent="● Rekam GPS"}
+ else{msg("Merekam... biarkan layar menyala dan aplikasi di depan.");
+  watch=navigator.geolocation.watchPosition(p=>addPt([p.coords.latitude,p.coords.longitude],p.timestamp),er=>{msg("GPS gagal: "+er.message);watch=null;$("rec").textContent="● Rekam GPS"},{enableHighAccuracy:true,maximumAge:0})}};
+
+
+/* ---------- VIDEO ---------- */
+const Z=(la,lo,z)=>{const n=256*2**z,r=la*Math.PI/180;return[(lo+180)/360*n,(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n]};
+const loadImg=u=>new Promise(r=>{const i=new Image();i.crossOrigin="anonymous";i.onload=()=>r(i);i.onerror=()=>r(null);i.src=u});
+async function saveFile(blob,name){const P=NAT?Capacitor.Plugins:null;
+ if(P&&P.Filesystem&&P.Share){const data=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result.split(",")[1]);f.readAsDataURL(blob)});
+  const w=await P.Filesystem.writeFile({path:name,data,directory:"CACHE"});await P.Share.share({title:"Video perjalanan",files:[w.uri]});msg("Video siap. Di menu bagikan, pilih simpan atau kirim ke aplikasi lain.");return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();msg("Video diunduh: "+name)}
+$("vid").onclick=async()=>{
+ if(S.pts.length<2){msg("Tambahkan rute dulu.");return}
+ const types=["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9","video/webm"],mt=window.MediaRecorder&&types.find(t=>MediaRecorder.isTypeSupported(t));
+ if(!mt){msg("HP/browser ini tidak mendukung rekam video.");return}
+ const W=540,H=960,c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+ msg("Menyiapkan peta untuk video...");playing=false;
+ let z=17,B;for(;z>2;z--){const Q=S.pts.map(p=>Z(p[0],p[1],z)),xs=Q.map(p=>p[0]),ys=Q.map(p=>p[1]);B=[Math.min(...xs),Math.max(...xs),Math.min(...ys),Math.max(...ys)];if(B[1]-B[0]<W-110&&B[3]-B[2]<H-420)break}
+ const ox=(B[0]+B[1])/2-W/2,oy=(B[2]+B[3])/2-H/2+30,P=S.pts.map(p=>{const q=Z(p[0],p[1],z);return[q[0]-ox,q[1]-oy]}),n=2**z,jobs=[];
+ for(let x=Math.floor(ox/256);x<=Math.floor((ox+W)/256);x++)for(let y=Math.floor(oy/256);y<=Math.floor((oy+H)/256);y++)if(y>=0&&y<n)jobs.push(loadImg(`https://tile.openstreetmap.org/${z}/${((x%n)+n)%n}/${y}.png`).then(im=>({im,x,y})));
+ const tiles=await Promise.all(jobs),base=document.createElement("canvas");base.width=W;base.height=H;const b=base.getContext("2d");
+ b.fillStyle="#e5e3df";b.fillRect(0,0,W,H);tiles.forEach(t=>t.im&&b.drawImage(t.im,t.x*256-ox,t.y*256-oy));
+ const path=a=>{g.beginPath();a.forEach((p,k)=>k?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]))};
+ const frame=f=>{g.drawImage(base,0,0);g.lineCap=g.lineJoin="round";
+  g.strokeStyle="rgba(90,100,120,.55)";g.lineWidth=9;path(P);g.stroke();
+  const d=f*total,i=posAt(d)[2],sg=cum[i]-cum[i-1]||1,t=Math.min(1,Math.max(0,(d-cum[i-1])/sg)),A=P[i-1],Bp=P[i],q=[A[0]+(Bp[0]-A[0])*t,A[1]+(Bp[1]-A[1])*t];
+  g.strokeStyle="#1a73e8";g.lineWidth=8;path(P.slice(0,i).concat([q]));g.stroke();
+  [[P[0],"#16a34a"],[P[P.length-1],"#dc2626"]].forEach(([p,col])=>{g.fillStyle="#fff";g.beginPath();g.arc(p[0],p[1],13,0,7);g.fill();g.fillStyle=col;g.beginPath();g.arc(p[0],p[1],9,0,7);g.fill()});
+  g.fillStyle="#fff";g.strokeStyle="#1a73e8";g.lineWidth=5;g.beginPath();g.arc(q[0],q[1],25,0,7);g.fill();g.stroke();
+  const east=Bp[0]>A[0],fl=(S.veh==="motor"||S.veh==="mobil")?east:S.veh==="pesawat"?!east:false;
+  g.save();g.translate(q[0],q[1]+2);if(fl)g.scale(-1,1);g.font="30px sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillStyle="#000";g.fillText(VE[S.veh],0,0);g.restore();
+  g.fillStyle="rgba(15,23,42,.88)";g.fillRect(0,0,W,120);g.fillStyle="#fff";g.textAlign="left";g.textBaseline="alphabetic";
+  g.font="700 44px system-ui,sans-serif";g.fillText((d).toFixed(1)+" km",28,62);g.fillStyle="#98a0ac";g.font="22px system-ui,sans-serif";g.fillText("dari "+total.toFixed(1)+" km",28,98);
+  if(hasT){const v=spd[Math.min(spd.length-1,i)]||0;g.fillStyle="#ff6b2c";g.textAlign="right";g.font="700 44px system-ui,sans-serif";g.fillText(Math.round(v)+" km/j",W-28,62);
+   g.fillStyle="#98a0ac";g.font="22px system-ui,sans-serif";g.fillText("rata-rata "+$("sA").textContent,W-28,98);
+   g.fillStyle="rgba(15,23,42,.88)";g.fillRect(0,H-70,W,70);g.fillStyle="#fff";g.textAlign="center";g.font="24px system-ui,sans-serif";g.fillText("Durasi "+$("sT").textContent+"  ·  Maks "+$("sM").textContent,W/2,H-26)}};
+ const rc=new MediaRecorder(c.captureStream(30),{mimeType:mt,videoBitsPerSecond:4e6}),chunks=[];
+ rc.ondataavailable=e=>e.data.size&&chunks.push(e.data);const fin=new Promise(r=>rc.onstop=r);
+ const dur=+$("vd").value*1000;frame(0);rc.start();const t0=performance.now();
+ await new Promise(res=>{const step=now=>{const f=Math.min(1,(now-t0)/dur);frame(f);msg("Merekam video... "+Math.round(f*100)+"% (jangan tutup layar)");f<1?requestAnimationFrame(step):res()};requestAnimationFrame(step)});
+ await new Promise(r=>setTimeout(r,1500));rc.stop();await fin;
+ await saveFile(new Blob(chunks,{type:mt.split(";")[0]}),"trip-"+Date.now()+(mt.startsWith("video/mp4")?".mp4":".webm"))};
+
+/* ---------- BENSIN ---------- */
+const fs=$("fuel");Object.keys(FUELS).forEach(k=>fs.add(new Option(k,k)));
+$("eff").value=S.eff;$("o1").value=S.o1;$("o2").value=S.o2;$("rpi").value=S.rpi;$("pct").value=S.pct;fs.value=S.fuel;$("price").value=S.price;$("tank").value=S.tank;$("f1").value=S.f1;$("f2").value=S.f2;
+fs.onchange=()=>{S.fuel=fs.value;$("price").value=S.price=FUELS[fs.value];calc()};
+["price","tank","f1","f2","eff","rpi","pct","o1","o2"].forEach(i=>$(i).oninput=()=>{S[i]=$(i).value;calc()});
+let LT=0;
+function calc(){const pr=+S.price,f2=+S.f2,tk=+S.tank;LT=pr>0?f2/pr:0;
+ const od=(S.o1!==""&&S.o2!==""&&+S.o2>+S.o1)?+S.o2-+S.o1:0,km=od||total,kpl=LT>0&&km>0?km/LT:0,cpk=km>0?f2/km:0;
+ $("res").innerHTML=`<div><b>${LT.toFixed(2)} L</b><small>BBM terpakai</small></div><div><b>${kpl?kpl.toFixed(1):"-"}</b><small>km per liter</small></div><div><b>${cpk?rp(cpk):"-"}</b><small>biaya per km</small></div>`;
+ $("warn").textContent=LT>tk&&tk>0?`Terpakai ${LT.toFixed(1)} L melebihi tangki ${tk} L. Cek lagi nominalnya atau kamu isi di tengah jalan.`:
+  (km?`${od?"Jarak dari odometer":"Jarak rute"}: ${km.toFixed(1)} km. Terpakai ${tk?Math.round(LT/tk*100):0}% dari tangki.`:"Isi odometer di kedua kartu isi bensin, atau buat rute di tab Perjalanan, untuk hitung km per liter.");
+
+ $("l1").textContent=S.f1&&pr>0?"Setara "+(+S.f1/pr).toFixed(2)+" L "+S.fuel:"";
+ $("l2").textContent=f2&&pr>0?"Setara "+LT.toFixed(2)+" L "+S.fuel+" terpakai":"";
+ const ef=+S.eff||kpl||0,pr2=+S.price,pc=+S.pct,lit=tk*pc/100,rg=ef*lit,full=ef*tk,rp2=+S.rpi,kmIsi=ef&&pr2?rp2/pr2*ef:0;
+ $("pcl").textContent=pc+"% ("+lit.toFixed(1)+" L)";
+ $("rg").innerHTML=`<div><b>${ef?ef.toFixed(1):"-"}</b><small>km/L dipakai</small></div><div><b>${ef?Math.round(rg)+" km":"-"}</b><small>sisa bensin habis</small></div><div><b>${ef?Math.round(full)+" km":"-"}</b><small>tangki penuh</small></div>`;
+ $("rgw").textContent=!ef?"Isi efisiensi atau buat rute dulu supaya bisa dihitung.":
+  `Jarak ditempuh: ${km.toFixed(1)} km.`+(rp2?` Isi Rp${rp2.toLocaleString("id-ID")} cukup untuk sekitar ${Math.round(kmIsi)} km.`:"")+(km&&rg<km?` Bensin habis di sekitar km ${Math.round(rg)} dari rute (ditandai di peta).`:km?" Bensin cukup sampai tujuan.":"");
+ fuelMark(ef&&total&&rg<total?rg:null);
+ save()}
+let fm;
+function fuelMark(d){if(fm){map.removeLayer(fm);fm=null}if(d==null||!S.pts.length)return;const c=posAt(d);if(!c)return;
+ fm=L.marker([c[0],c[1]],{icon:L.divIcon({className:"",html:'<div class="veh" style="border-color:#dc2626">⛽</div>',iconSize:[40,40],iconAnchor:[20,20]})}).addTo(map).bindTooltip("Bensin habis")}
+$("toExp1").onclick=()=>{const a=+S.f1;if(!a)return;S.tx.unshift({t:"out",a,n:`Isi bensin pertama ${S.fuel} (${(a/+S.price).toFixed(2)} L)`,d:td(),c:"Perjalanan"});save();rend();$("l1").textContent="Dicatat ke tab Keuangan."};
+$("toExp").onclick=()=>{const a=+S.f2;if(!a)return;S.tx.unshift({t:"out",a,n:`Isi bensin kedua ${S.fuel} (${LT.toFixed(2)} L)`,d:td(),c:"Perjalanan"});save();rend();$("l2").textContent="Dicatat ke tab Keuangan."};
+
+/* ---------- KEUANGAN ---------- */
+const fd=d=>/^\d{4}-/.test(d||"")?new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"short",year:"numeric"}):"Tanpa tanggal";
+const CATS=["Kerja","Perjalanan","Pribadi","Lainnya"];
+const pct=v=>(Math.round(v*10)/10).toString().replace(".",",")+"%";
+function rend(){const m=$("mf").value,c=$("cf").value;
+ const base=S.tx.map((x,k)=>({x,k})).filter(r=>!m||(r.x.d||"").startsWith(m));
+ const R=base.filter(r=>!c||(r.x.c||"Lainnya")===c).sort((a,b)=>(b.x.d||"").localeCompare(a.x.d||"")),G={};
+ let i=0,o=0,ni=0,no=0;
+ R.forEach(r=>{(G[r.x.d]=G[r.x.d]||[]).push(r);if(r.x.t==="in"){i+=r.x.a;ni++}else{o+=r.x.a;no++}});
+ $("list").innerHTML=R.length?Object.keys(G).map(d=>{let n=0;const rows=G[d].map(r=>{const x=r.x;n+=x.t==="in"?x.a:-x.a;
+  return`<div class="it"><div>${esc(x.n||"-")}<div class="mu">${esc(x.c||"Lainnya")}</div></div><div><span class="${x.t}">${x.t==="in"?"+":"-"}${rp(x.a)}</span> <button class="b g" data-k="${r.k}" style="padding:4px 8px">✕</button></div></div>`}).join("");
+  return`<div style="display:flex;justify-content:space-between;margin-top:10px"><b>${fd(d)}</b><span class="mu">Total hari itu: ${n<0?"-":""}${rp(Math.abs(n))}</span></div>`+rows}).join(""):'<p class="mu">Belum ada catatan.</p>';
+ $("tin").textContent=rp(i);$("tout").textContent=rp(o);$("tbal").textContent=rp(i-o);
+ $("pOut").textContent=i>0?pct(o/i*100):"-";$("pSis").textContent=i>0?pct((i-o)/i*100):"-";$("nTx").textContent=ni+" / "+no;
+ const dI=new Set(R.filter(r=>r.x.t==="in").map(r=>r.x.d)).size,dO=new Set(R.filter(r=>r.x.t==="out").map(r=>r.x.d)).size;
+ $("avg").textContent=dI||dO?`Rata-rata per hari: pemasukan ${dI?rp(i/dI):"-"} (${dI} hari), pengeluaran ${dO?rp(o/dO):"-"} (${dO} hari).`:"";
+ const B={};CATS.forEach(k=>B[k]={in:0,out:0});
+ base.forEach(r=>{const k=B[r.x.c]?r.x.c:"Lainnya";B[k][r.x.t]+=r.x.a});
+ const TO=CATS.reduce((t,k)=>t+B[k].out,0),TI=CATS.reduce((t,k)=>t+B[k].in,0);
+ $("bk").innerHTML=CATS.filter(k=>B[k].in||B[k].out).map(k=>{const po=TO>0?B[k].out/TO*100:0,pi=TI>0?B[k].in/TI*100:0;
+  return`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between"><b>${k}</b><span class="mu">${rp(B[k].in-B[k].out)}</span></div>
+  <div class="mu"><span class="in">Masuk ${rp(B[k].in)}</span> (${pct(pi)} dari total masuk)</div>
+  <div class="mu"><span class="out">Keluar ${rp(B[k].out)}</span> (${pct(po)} dari total keluar)</div>
+  <div style="height:6px;background:var(--bd);border-radius:4px;margin-top:4px"><div style="height:6px;width:${po}%;background:var(--ac);border-radius:4px"></div></div></div>`}).join("")||'<p class="mu">Belum ada data.</p>';
+ document.querySelectorAll("#list button").forEach(b=>b.onclick=()=>{S.tx.splice(+b.dataset.k,1);save();rend()})}
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+$("add").onclick=()=>{const a=+$("am").value;if(!a)return;const d=$("dt").value||td();
+ S.tx.unshift({t:$("ty").value,a,n:$("nt").value,d,c:$("ct").value});$("am").value=$("nt").value="";$("mf").value=d.slice(0,7);save();rend()};
+$("dt").value=td();$("mf").value=td().slice(0,7);$("mf").oninput=rend;$("cf").oninput=rend;$("mall").onclick=()=>{$("mf").value="";rend()};
+
+prep();layers(true);calc();rend();
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script></body></html>
